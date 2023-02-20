@@ -1,0 +1,448 @@
+openapi: 3.0.0
+info:
+  title: OPoT Open API
+  version: 0.0.1
+  description: API for managing OPoT Paths.
+  contact: {}
+servers:
+  - url: /api/v2/
+    description: Base path of the API
+paths:
+  '/pot/controller/path/{uuid}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: uuid
+        in: path
+        required: true
+        description: uuid of the existing path
+    get:
+      summary: Get information about a existing OPoT Path
+      responses:
+        '200':
+          $ref: '#/components/responses/path_information'
+        '404':
+          $ref: '#/components/responses/error'
+        '500':
+          $ref: '#/components/responses/error'
+      operationId: opot_sdk.api.get_path_info
+      description: Retrieve the status and information of a existing path
+      tags:
+        - opot
+    delete:
+      summary: Destroy OPoT Path
+      operationId: opot_sdk.api.destroy_path
+      responses:
+        '200':
+          $ref: '#/components/responses/default'
+        '404':
+          $ref: '#/components/responses/error'
+      description: Destroying a OPoT Path
+      tags:
+        - opot
+  /pot/controller/path:
+    post:
+      summary: Create OPoT Path
+      operationId: opot_sdk.api.create_path
+      responses:
+        '200':
+          $ref: '#/components/responses/path_information'
+        '500':
+          $ref: '#/components/responses/error'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PathDescriptor'
+            examples:
+              example_ports:
+                value:
+                  protocol: UDP
+                  nodes:
+                    - ip: 192.168.0.1
+                    - ip: 192.168.0.2
+                      port: 55002
+                  receiver:
+                    ip: 192.168.0.3
+                    port: 55003
+                  sender:
+                    ip: 192.168.0.4
+                    port: 55004
+              example_no_ports:
+                value:
+                  protocol: UDP
+                  nodes:
+                    - ip: 192.168.0.1
+                    - ip: 192.168.0.2
+                  receiver:
+                    ip: 192.168.0.3
+                    port: 55444
+                  sender:
+                    ip: 192.168.0.4
+                    port: 55432
+              example_local_test:
+                value:
+                  protocol: UDP
+                  nodes:
+                    - ip: 127.0.0.1
+                      port: 55555
+                    - ip: 127.0.0.1
+                      port: 55556
+                  receiver:
+                    ip: 127.0.0.1
+                    port: 55432
+                  sender:
+                    ip: 127.0.0.1
+                    port: 55433
+      description: Create a OPoT Path
+      tags:
+        - opot
+  /qryptrandom/stream:
+    get:
+      summary: Stream_Endpoint
+      responses:
+        '200':
+          description: JSON string with random data.
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  format:
+                    type: string
+                    minLength: 1
+                  precision:
+                    type: number
+                  random:
+                    type: array
+                    items:
+                      properties:
+                        '0':
+                          type: array
+                          uniqueItems: true
+                          items:
+                            properties: {}
+                required:
+                  - format
+                  - precision
+                  - random
+        '202':
+          description: Random API Disabled
+          content:
+            application/json:
+              schema:
+                type: string
+                default: Random API Disabled
+              examples:
+                response:
+                  value: Random API Disabled
+        '400':
+          description: Size is out of range or another malformed request.
+          content:
+            application/json:
+              schema:
+                type: string
+                default: Size is out of range or another malformed request.
+              examples:
+                response:
+                  value: Size is out of range or another malformed request.
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: string
+                default: Rate limit exceeded
+                example: Rate limit exceeded
+              examples:
+                response:
+                  value: Rate limit exceeded
+        '503':
+          description: Not enough random available
+          content:
+            application/json:
+              schema:
+                type: string
+                default: Rate limit exceeded
+                example: Not enough random available
+              examples:
+                response:
+                  value: Not enough random available
+      operationId: qrypt_sdk.api.stream
+      description: |-
+        Pulls a specified number of lists of random. Each list consists of 1KB in a format that defaults to 128 64
+        bit integers in hexadecimal format.
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 512
+            default: 1
+          in: query
+          name: keysize
+          description: Number of lists worth of integers requested between 1 and 512 (range limited).
+        - schema:
+            type: string
+            enum:
+              - hexadecimal
+              - decimal
+            default: hexadecimal
+          in: query
+          name: format
+          description: 'Format of integer as hexadecimal or decimal. Default: hexadecimal (range limited).'
+        - schema:
+            type: integer
+            multipleOf: 16
+            minimum: 16
+            maximum: 64
+            enum:
+              - 64
+              - 32
+              - 16
+            default: 16
+          in: query
+          name: precision
+          description: 'Precision of integer as 16, 32 or 64 bit. Default 64 bits (range limited).'
+      tags:
+        - qrypt
+    parameters: []
+components:
+  schemas:
+    PathInfo:
+      title: PathInfo
+      type: object
+      x-examples:
+        PathInfo:
+          creation_time: 1616488134568011
+          masks:
+            - 1JpbYd5bYEJsXBMlkcXADet3CjVLC+303ZYQpnA7QE4=
+          nodes:
+            - address:
+                ip: 192.168.0.200
+                port: 55432
+              node_id: 0
+              node_type: Ingress
+              status: Operative
+            - address:
+                ip: 192.168.0.201
+                port: 49158
+              node_id: 1
+              node_type: Egress
+              status: Operative
+          opot_id: cdf2b942-8bb1-11eb-a94e-eb152c183a2f
+          protocol: UDP
+          status: Operative
+      description: Information about a deployed path
+      properties:
+        'opot_id ':
+          type: string
+          format: uuid
+        nodes:
+          type: array
+          minItems: 2
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              node_id:
+                type: integer
+              address:
+                $ref: '#/components/schemas/Address'
+              node_type:
+                type: string
+                example: Ingress
+            required:
+              - status
+              - node_id
+              - address
+              - node_type
+        masks:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 44
+            maxLength: 44
+            example: 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
+        protocol:
+          type: string
+          pattern: UDP|TCP
+          example: UDP
+        creation_time:
+          type: integer
+          format: time
+          example: 1615305214342100
+      required:
+        - 'opot_id '
+        - nodes
+        - masks
+        - protocol
+        - creation_time
+    PathDescriptor:
+      title: PathDescriptor
+      type: object
+      description: 'Descriptor of the path that will be created '
+      x-examples:
+        PathDescriptor_port:
+          protocol: TCP
+          nodes:
+            - ip: 192.168.0.1
+            - ip: 192.168.0.2
+              port: 55002
+          receiver:
+            ip: 192.168.0.3
+            port: 55003
+          sender:
+            ip: 192.168.0.4
+            port: 55004
+        PathDescriptor_no_port:
+          nodes:
+            - ip: 192.168.0.200
+            - ip: 192.168.0.201
+            - ip: 192.168.0.202
+          protocol: UDP
+          receiver:
+            ip: 192.168.0.155
+            port: 33333
+          sender:
+            ip: 192.168.0.150
+            port: 33334
+        PathDescriptor_test:
+          protocol: UDP
+          nodes:
+            - ip: 127.0.0.1
+              port: 55000
+            - ip: 127.0.0.1
+              port: 55001
+          receiver:
+            ip: 127.0.0.1
+            port: 55432
+          sender:
+            ip: 127.0.0.1
+            port: 55432
+      properties:
+        protocol:
+          type: string
+          pattern: UDP|TCP
+          example: UDP
+          description: Protocol that is going to be used for the path. UDP or TCP
+        nodes:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/Address'
+        receiver:
+          $ref: '#/components/schemas/Address'
+        sender:
+          $ref: '#/components/schemas/Address'
+        test:
+          type: boolean
+      required:
+        - protocol
+        - nodes
+        - receiver
+        - sender
+    Address:
+      title: Address
+      type: object
+      properties:
+        ip:
+          type: string
+          format: ipv4
+        port:
+          type: integer
+          maximum: 65353
+          minimum: 0
+          example: 55432
+      required:
+        - ip
+      x-examples:
+        Address_port:
+          ip: 192.168.0.1
+          port: 55432
+        Address_no_port:
+          ip: 192.168.0.1
+      description: IPv4 Address with the port
+  securitySchemes: {}
+  responses:
+    path_information:
+      description: Example response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              path_info:
+                $ref: '#/components/schemas/PathInfo'
+          examples:
+            example-1:
+              value:
+                path_info:
+                  'opot_id ': 1266841a-0650-4496-a5ad-e84a5ae762f3
+                  nodes:
+                    - status: Operative
+                      node_id: 0
+                      address:
+                        ip: 192.168.0.1
+                        port: 55432
+                      node_type: Ingress
+                    - status: Operative
+                      node_id: 0
+                      address:
+                        ip: 192.168.0.1
+                        port: 55432
+                      node_type: Ingress
+                  masks:
+                    - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
+                  protocol: UDP
+                  creation_time: 1615305214342100
+    error:
+      description: Example response
+      content:
+        application/json:
+          schema:
+            description: ''
+            type: object
+            properties:
+              detail:
+                type: string
+                minLength: 1
+              status:
+                type: number
+              title:
+                type: string
+                minLength: 1
+              type:
+                type: string
+                minLength: 1
+            required:
+              - detail
+              - status
+              - title
+              - type
+          examples:
+            example-1:
+              value:
+                detail: Details of the error
+                status: 500
+                title: Title of the error
+                type: string
+    default:
+      description: Default response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              status:
+                type: number
+  examples: {}
+tags:
+  - name: opot
+  - name: qrypt

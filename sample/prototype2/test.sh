@@ -1,0 +1,3 @@
+curl -X POST "http://192.168.0.100:8080/api/v2/pot/controller/path" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{\"nodes\":[{\"ip\":\"192.168.0.200\"},{\"ip\":\"192.168.0.201\"}],\"protocol\":\"UDP\",\"receiver\":{\"ip\":\"192.168.0.155\",\"port\":55444},\"sender\":{\"ip\":\"192.168.0.150\",\"port\":55432}}"
+
+curl -X POST "http://192.168.0.100:8080/api/v2/pot/controller/path" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{\"nodes\":[{\"ip\":\"192.168.0.200\"},{\"ip\":\"192.168.0.201\"},{\"ip\":\"192.168.0.202\"}],\"protocol\":\"UDP\",\"receiver\":{\"ip\":\"192.168.0.155\",\"port\":33333},\"sender\":{\"ip\":\"192.168.0.155\",\"port\":33334}}"

@@ -1,0 +1,76 @@
+version: "3.9"
+services:
+#  node1:
+#    image: opot_node
+#    environment:
+#      - NETCONF_PORT=8300
+#      - OPOT_CONTROLLER_IP=192.168.165.2
+#      - LOGS_PATH=/tmp
+#      - INTERFACES_TO_LISTEN=eth1
+#    networks:
+#      proxy:
+#        ipv4_address: 10.0.0.2
+#      net1:
+#        ipv4_address: 10.1.1.3
+#      management:
+#        ipv4_address: 192.168.165.101
+#    volumes:
+#      - "./node/config_files:/config/"
+#  node2:
+#    image: opot_node
+#    environment:
+#      - NETCONF_PORT=8300
+#      - OPOT_CONTROLLER_IP=192.168.165.2
+#      - LOGS_PATH=/tmp
+#      - INTERFACES_TO_LISTEN=eth1
+#    networks:
+#      proxy:
+#        ipv4_address: 10.0.0.3
+#      management:
+#        ipv4_address: 192.168.165.102
+#    volumes:
+#      - "./node/config_files:/config/"
+  node:
+    image: opot_node
+    cap_add:
+      - ALL
+    environment:
+      - NETCONF_PORT=8300
+      - OPOT_CONTROLLER_IP=10.0.0.74
+      - LOGS_PATH=/tmp
+      - INTERFACES_TO_LISTEN=eth1
+
+    command:
+      - "bash"
+      - "/entrypoint.sh"
+    network_mode: host
+  controller:
+    image: base_opot
+    environment:
+      - OPOT_CONTROLLER_IP=0.0.0.0
+      - OPEN_API_IP=0.0.0.0
+      - KAFKA_SERVERS=192.168.165.57
+      - KAFKA_TOPIC=pot_stats
+    volumes:
+      - #    networks:
+#      management:
+#        ipv4_address: 192.168.165.2
+    command:
+      - "bash"
+      - "/entrypoint.sh"
+#    entrypoint: ["/bin/bash"]
+
+# TODO modify this part to make the networks independent from the current setup
+#networks:
+#  management:
+#    external: true
+#    name: management
+#  proxy:
+#    external: true
+#    name: proxy
+#  net1:
+#    external: true
+#    name: net1
+#  net2:
+#    external: true
+#    name: net2

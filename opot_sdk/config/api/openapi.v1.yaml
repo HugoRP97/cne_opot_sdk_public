@@ -1,0 +1,414 @@
+openapi: 3.0.0
+info:
+  title: OPoT Open API
+  version: 1.0.0
+  description: API designed to manage the events of creating and deleting the different OPoT paths. This will give the ability to guarantee that a given network packet has passed through certain nodes and in a given order.
+  contact:
+    name: Hugo
+    email: hugo.ramonpascual.practicas@telefonica.com
+  license:
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    name: Apache 2.0
+servers:
+  - url: /opot_api/
+    description: Path for the OPoT API
+paths:
+  '/path/{uuid}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: uuid
+        in: path
+        required: true
+        description: uuid of the existing path
+    get:
+      summary: Get information about an existing OPoT Path
+      responses:
+        '200':
+          $ref: '#/components/responses/path_information'
+        '404':
+          $ref: '#/components/responses/error'
+        '500':
+          $ref: '#/components/responses/error'
+      operationId: opot_sdk.api.get_path_info
+      description: Retrieve the status and information of an existing path
+      tags:
+        - opot
+    delete:
+      summary: Destroy an OPoT Path
+      operationId: opot_sdk.api.destroy_path
+      responses:
+        '200':
+          $ref: '#/components/responses/default'
+        '404':
+          $ref: '#/components/responses/error'
+      description: Destroying an OPoT Path
+      tags:
+        - opot
+  /path:
+    post:
+      summary: Create OPoT Path
+      operationId: opot_sdk.api.create_path
+      responses:
+        '200':
+          $ref: '#/components/responses/path_information'
+        '500':
+          $ref: '#/components/responses/error'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PathDescriptor'
+            examples:
+              Example with prometheus enabled:
+                value:
+                  protocol: UDP
+                  prometheus: true
+                  nodes:
+                    - mgmt_ip: 192.168.0.1
+                      path_ip: 10.0.0.1
+                    - mgmt_ip: 192.168.0.2
+                      path_ip: 10.0.0.2
+                  receiver:
+                    ip: 192.168.0.3
+                    port: 55444
+                  sender:
+                    ip: 192.168.0.4
+                    port: 55432
+              Example with prometheus disabled:
+                value:
+                  protocol: UDP
+                  nodes:
+                    - mgmt_ip: 192.168.0.1
+                      path_ip: 10.0.0.1
+                    - mgmt_ip: 192.168.0.2
+                      path_ip: 10.0.0.2
+                  receiver:
+                    ip: 192.168.0.3
+                    port: 55444
+                  sender:
+                    ip: 192.168.0.4
+                    port: 55432
+        description: ''
+      description: Create an OPoT Path
+      tags:
+        - opot
+    parameters: []
+components:
+  schemas:
+    PathInfo:
+      title: PathInfo
+      type: object
+      x-examples:
+        PathInfo2:
+          value:
+            'pot_id ': 1266841a-0650-4496-a5ad-e84a5ae762f3
+            status: 200
+            path_status: Operative
+            nodes:
+              - status: Operative
+                node_id: Ingress_node_id
+                node_position: 0
+                address:
+                  ip: 192.168.0.1
+                  port: 55432
+                node_type: Ingress
+              - status: Operative
+                node_id: Egress_node_id
+                node_position: 1
+                address:
+                  ip: 192.168.0.2
+                  port: 55433
+                node_type: Egress
+            masks:
+              - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
+            protocol: UDP
+            creation_time: 1615305214342100
+        PathInfo1:
+          value:
+            'pot_id ': 1266841a-0650-4496-a5ad-e84a5ae762f3
+            status: 200
+            path_status: Operative
+            nodes:
+              - status: Operative
+                node_id: Ingress_node_id
+                node_position: 0
+                address:
+                  ip: 192.168.0.1
+                  port: 55432
+                node_type: Ingress
+              - status: Operative
+                node_id: Middle_node_id
+                node_position: 1
+                address:
+                  ip: 192.168.0.2
+                  port: 55433
+                node_type: Middle
+              - status: Operative
+                node_id: Egress_node_id
+                node_position: 2
+                address:
+                  ip: 192.168.0.3
+                  port: 55434
+                node_type: Egress
+            masks:
+              - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
+            protocol: UDP
+            creation_time: 1615305214342100
+      description: Information about a deployed path
+      properties:
+        'pot_id ':
+          type: string
+          format: uuid
+        status:
+          type: number
+          example: 200
+          default: 200
+        path_status:
+          type: string
+          example: Operative
+          default: Operative
+        nodes:
+          type: array
+          minItems: 2
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+                default: Operative
+                example: Operative
+              node_id:
+                type: string
+              node_position:
+                type: integer
+                minimum: 0
+                default: 0
+              address:
+                $ref: '#/components/schemas/NodeAddress'
+              node_type:
+                type: string
+                example: Ingress
+            required:
+              - status
+              - node_id
+              - address
+              - node_type
+        masks:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 44
+            maxLength: 44
+            example: 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
+        protocol:
+          type: string
+          pattern: UDP|TCP
+          example: UDP
+        creation_time:
+          type: integer
+          format: time
+          example: 1615305214342100
+      required:
+        - 'pot_id '
+        - nodes
+        - masks
+        - protocol
+        - creation_time
+    PathDescriptor:
+      title: PathDescriptor
+      type: object
+      description: 'Descriptor of the path that will be created '
+      x-examples: {}
+      properties:
+        protocol:
+          type: string
+          pattern: UDP|TCP
+          example: UDP
+          description: Protocol that is going to be used for the path. UDP or TCP
+        nodes:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/NodeAddress'
+        receiver:
+          $ref: '#/components/schemas/Address'
+        sender:
+          $ref: '#/components/schemas/Address'
+        prometheus:
+          type: boolean
+      required:
+        - protocol
+        - nodes
+        - receiver
+        - sender
+    NodeAddress:
+      title: Address
+      type: object
+      x-examples:
+        Address_port:
+          ip: 192.168.0.1
+          port: 55432
+        Address_no_port:
+          ip: 192.168.0.1
+      description: IPv4 Address with the port
+      properties:
+        mgmt_ip:
+          type: string
+          format: ipv4
+        path_ip:
+          type: string
+          format: ipv4
+        port:
+          type: integer
+          maximum: 65353
+          minimum: 0
+          example: 55432
+      required:
+        - mgmt_ip
+        - path_ip
+    Address:
+      title: Address
+      type: object
+      x-examples:
+        Address_port:
+          ip: 192.168.0.1
+          port: 55432
+        Address_no_port:
+          ip: 192.168.0.1
+      description: IPv4 Address with the port
+      properties:
+        ip:
+          type: string
+          format: ipv4
+        port:
+          type: integer
+          maximum: 65353
+          minimum: 0
+          example: 55432
+  securitySchemes: {}
+  responses:
+    path_information:
+      description: Example response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              path_info:
+                $ref: '#/components/schemas/PathInfo'
+          examples:
+            Path1:
+              value:
+                'pot_id ': 1266841a-0650-4496-a5ad-e84a5ae762f3
+                status: 200
+                path_status: Operative
+                nodes:
+                  - status: Operative
+                    node_id: Ingress_node_id
+                    node_position: 0
+                    address:
+                      ip: 192.168.0.1
+                      port: 55432
+                    node_type: Ingress
+                  - status: Operative
+                    node_id: Egress_node_id
+                    node_position: 1
+                    address:
+                      ip: 192.168.0.2
+                      port: 55433
+                    node_type: Egress
+                masks:
+                  - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
+                protocol: UDP
+                creation_time: 1615305214342100
+            Path2:
+              value:
+                'pot_id ': 1266841a-0650-4496-a5ad-e84a5ae762f3
+                status: 200
+                path_status: Operative
+                nodes:
+                  - status: Operative
+                    node_id: Ingress_node_id
+                    node_position: 0
+                    address:
+                      ip: 192.168.0.1
+                      port: 55432
+                    node_type: Ingress
+                  - status: Operative
+                    node_id: Middle_node_id
+                    node_position: 1
+                    address:
+                      ip: 192.168.0.2
+                      port: 55433
+                    node_type: Middle
+                  - status: Operative
+                    node_id: Egress_node_id
+                    node_position: 2
+                    address:
+                      ip: 192.168.0.3
+                      port: 55434
+                    node_type: Egress
+                masks:
+                  - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
+                protocol: UDP
+                creation_time: 1615305214342100
+    error:
+      description: Example response
+      content:
+        application/json:
+          schema:
+            description: ''
+            type: object
+            properties:
+              detail:
+                type: string
+                minLength: 1
+              status:
+                type: number
+              title:
+                type: string
+                minLength: 1
+              type:
+                type: string
+                minLength: 1
+            required:
+              - detail
+              - status
+              - title
+              - type
+          examples:
+            Not Found:
+              value:
+                detail: The uuid of the OPoT was not found
+                status: 404
+                title: Not Found
+                type: string
+            Internal Server Error:
+              value:
+                detail: There was an error in the controller
+                status: 500
+                title: Internal Server Error
+                type: string
+    default:
+      description: Default response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              status:
+                type: number
+          examples:
+            Path removed:
+              value:
+                message: The path has been removed
+                status: 200
+  examples: {}
+tags:
+  - name: opot

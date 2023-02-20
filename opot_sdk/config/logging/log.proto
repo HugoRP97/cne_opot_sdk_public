@@ -1,0 +1,35 @@
+syntax = "proto3";
+message Empty {}
+
+message IngressLog {
+  string path_id = 1;
+  string node_id = 2;
+  int32 sequence_number = 3;
+  int64 cml = 4;
+  int32 secret = 5;
+  int64 timestamp = 6;
+}
+
+message MiddleLog {
+  string path_id = 1;
+  string node_id = 2;
+  int32 sequence_number = 3;
+  int64 cml = 4;
+  int64 timestamp = 5;
+}
+
+message EgressLog {
+  string path_id = 1;
+  string node_id = 2;
+  int32 sequence_number = 3;
+  int64 cml = 4;
+  bool valid = 5;
+  int64 timestamp = 6;
+}
+
+
+service LogReport {
+  rpc ingressToController(IngressLog) returns (Empty) {};
+  rpc middleToController(MiddleLog) returns (Empty) {};
+  rpc egressToController(EgressLog) returns (Empty) {};
+}

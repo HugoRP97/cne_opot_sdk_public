@@ -1,0 +1,60 @@
+@startuml
+actor Sender
+actor Orchestrator 
+participant Controller
+participant IngressNode
+participant MiddleNode
+participant EgressNode
+actor Receiver
+autonumber "<font color=blue><b>0"
+Sender -> Controller : Request path creation thorugh API.
+autonumber stop
+activate Controller
+group Configuring the nodes
+autonumber resume
+Controller -> Controller: Calculate the necessary parameters.
+Controller -> IngressNode: Send IngressNode configuration via netconf.
+autonumber stop
+IngressNode--> Controller: Confirmation.
+Controller -> MiddleNode: Send IngressNode configuration via netconf.
+MiddleNode--> Controller: Confirmation.
+Controller -> EgressNode: Send IngressNode configuration via netconf.
+EgressNode--> Controller: Confirmation.
+end 
+autonumber resume
+Controller --> Orchestrator: Confirmation with the information of the deployed path.
+autonumber stop
+deactivate Controller
+group PoT Flow
+autonumber resume
+Sender -> IngressNode: Send data
+activate IngressNode
+IngressNode -> IngressNode: Generate Secret.
+autonumber stop
+IngressNode -> IngressNode: Calculate cumulative value.
+IngressNode -> IngressNode: Cipher PoT values with simmetric mask.
+IngressNode -> Controller: Send metrics to Controller (gRPC).
+IngressNode -> MiddleNode: Send PoT Packet.
+deactivate IngressNode
+activate MiddleNode
+autonumber resume
+MiddleNode -> MiddleNode: Decrypt PoT values with simmetric key.
+autonumber stop
+MiddleNode -> MiddleNode: Calculate cumulative value.
+MiddleNode -> MiddleNode : Cipher PoT values with simmetric mask.
+MiddleNode -> Controller: Send metrics to Controller (gRPC).
+MiddleNode -> EgressNode: Send PoT Packet.
+deactivate MiddleNode
+activate EgressNode
+autonumber resume
+EgressNode -> EgressNode: Decrypt PoT values with simmetric key.
+autonumber stop
+EgressNode -> EgressNode: Calculate cumulative value.
+EgressNode -> EgressNode: Verify Secret.
+EgressNode -> Controller: Send result and metrics to Controller (gRPC).
+autonumber resume
+EgressNode -> Receiver: Send data packet if verifications was valid.
+autonumber stop
+deactivate EgressNode
+end
+@enduml

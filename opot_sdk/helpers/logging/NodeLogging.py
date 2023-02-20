@@ -1,0 +1,64 @@
+import logging
+import logging.config
+import queue
+import threading
+from logging.handlers import QueueListener, QueueHandler
+import yaml
+from opot_sdk.helpers.Singleton import Singleton
+import os
+from opot_sdk.helpers.default_params.NodeParams import node_params
+
+default_formatter = logging.Formatter("[%(asctime)s] %(levelname)s [%(threadName)s:%(name)s] %(message)s")
+
+
+class NodeLogging(metaclass=Singleton):
+    """
+    Class that is used to configure the logs of the Nodes and NodeController
+    """
+
+    def __init__(self, test=False):
+        super().__init__()
+        # Let's make two queue, one will be used to log the events locally and the other one will be used to send the
+        # events to the controller.
+        # logging.getLogger().setLevel()
+
+        self.listeners = []
+        # Then we configure the loggers
+        self.root_logger = logging.getLogger('root_logger')
+        self.error_logger = logging.getLogger('error_logger')
+        self.add_queue_listener(self.error_logger, logging.ERROR,
+                                handlers=self.default_handlers(f'{node_params.logs_path}/error.log'))
+        self.add_queue_listener(self.root_logger, logging.INFO,
+                                handlers=self.default_handlers(f'{node_params.logs_path}/info.log'))
+        self.flow_logger = logging.getLogger('flow_logger')
+
+        for listener in self.listeners:
+            listener.start()
+        if test:
+            self.root_logger.setLevel(logging.CRITICAL)
+            self.flow_logger.setLevel(logging.CRITICAL)
+            self.error_logger.setLevel(logging.ERROR)
+
+    def add_queue_listener(self, logger, log_level, handlers):
+        q = queue.Queue()
+        handler = QueueHandler(queue=q)
+        handler.setFormatter(default_formatter)
+        logger.addHandler(QueueHandler(queue=q))
+        self.listeners.append(QueueListener(q, *handlers))
+        logger.setLevel(log_level)
+
+    @staticmethod
+    def default_handlers(filename):
+        handlers = [
+            logging.FileHandler(filename, mode='a'),
+            logging.StreamHandler()
+        ]
+        for h in handlers:
+            h.setFormatter(default_formatter)
+        return handlers
+
+
+nodeLogging = NodeLogging()
+
+if __name__ == '__main__':
+    NodeLogging()

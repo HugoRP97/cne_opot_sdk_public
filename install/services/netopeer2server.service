@@ -1,0 +1,9 @@
+[Unit]
+Description=Netopeer2 Server
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/netopeer2-server -d -v 3 2>%h/var/logs/netopeer2server.log
+
+[Install]
+WantedBy=default.target

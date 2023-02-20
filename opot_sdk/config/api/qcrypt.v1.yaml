@@ -1,0 +1,89 @@
+openapi: 3.0.0
+info:
+  title: qcrypt.v1
+  version: 0.0.1
+  description: ''
+servers:
+  - url: /api/v2
+paths:
+  /qryptrandom/stream:
+    get:
+      summary: Stream_Endpoint
+      tags: []
+      responses:
+        '200':
+          description: JSON string with random data.
+        '202':
+          description: Random API Disabled
+          content:
+            application/json:
+              schema:
+                type: string
+                default: Random API Disabled
+              examples:
+                response:
+                  value: Random API Disabled
+        '400':
+          description: Size is out of range or another malformed request.
+          content:
+            application/json:
+              schema:
+                type: string
+                default: Size is out of range or another malformed request.
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: string
+                default: Rate limit exceeded
+                example: Rate limit exceeded
+        '503':
+          description: Not enough random available
+          content:
+            application/json:
+              schema:
+                type: string
+                default: Rate limit exceeded
+                example: Not enough random available
+              examples: {}
+      operationId: qrypt_sdk.api.stream
+      description: |-
+        Pulls a specified number of lists of random. Each list consists of 1KB in a format that defaults to 128 64
+        bit integers in hexadecimal format.
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 512
+            default: 1
+          in: query
+          name: keysize
+          description: Number of lists worth of integers requested between 1 and 512 (range limited).
+        - schema:
+            type: string
+            enum:
+              - hexadecimal
+              - decimal
+            default: hexadecimal
+          in: query
+          name: format
+          description: 'Format of integer as hexadecimal or decimal. Default: hexadecimal (range limited).'
+          allowEmptyValue: true
+        - schema:
+            type: integer
+            multipleOf: 16
+            minimum: 16
+            maximum: 64
+            enum:
+              - 64
+              - 32
+              - 16
+            default: 16
+          in: query
+          name: precision
+          description: 'Precision of integer as 16, 32 or 64 bit. Default 64 bits (range limited).'
+          allowEmptyValue: true
+    parameters: []
+components:
+  schemas: {}

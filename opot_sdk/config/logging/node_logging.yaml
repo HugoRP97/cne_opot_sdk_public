@@ -1,0 +1,67 @@
+version: 1
+disable_existing_loggers: true
+
+queue_object: &queue1
+formatters:
+  basic:
+    class: logging.Formatter
+    format: '[%(asctime)s] %(levelname)s [%(threadName)s:%(name)s] %(message)s'
+    datefmt: '%d/%b/%Y %H:%M:%S'
+  flow:
+    class: logging.Formatter
+    format: '%(created)f,%(threadName)s,%(message)s'
+  error:
+    class: logging.Formatter
+    format: '[%(asctime)s] %(levelname)s [%(threadName)s:%(name)s] %(message)s'
+    datefmt: '%d/%b/%Y %H:%M:%S'
+handlers:
+  async_console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: basic
+  async_file:
+    class: logging.FileHandler
+    filename: "/tmp/info.log"
+    level: DEBUG
+    formatter: basic
+  async_error:
+    class: logging.StreamHandler
+    level: ERROR
+    formatter: error
+  async_error_file:
+    class: logging.FileHandler
+    filename: "/tmp/error.log"
+    level: ERROR
+    formatter: error
+  async_flow_file:
+    class: logging.FileHandler
+    level: DEBUG
+    filename: "/tmp/flow.log"
+  flow_listener:
+    class: opot_sdk.helpers.logging.handlers.QueueListenerHandler
+    handlers:
+      - cfg://handlers.async_flow_file
+  default_listener:
+    class: opot_sdk.helpers.logging.handlers.QueueListenerHandler
+    handlers:
+      - cfg://handlers.async_console #Remove if needed
+      - cfg://handlers.async_file
+  error_listener:
+    class: opot_sdk.helpers.logging.handlers.QueueListenerHandler
+    handlers:
+      - cfg://handlers.async_error # Remove if needed
+      - cfg://handlers.async_error_file
+loggers:
+  root_logger:
+    level: DEBUG
+    handlers: [default_listener]
+  error_logger:
+    level: ERROR
+    handlers: [error_listener]
+  flow_logger:
+    level: DEBUG
+    handlers: [ error_listener ]
+
+
+
+
