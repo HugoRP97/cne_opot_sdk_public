@@ -6,20 +6,19 @@ class PotProfileListDescriptor:
         self.status = kwargs.get('status', False)
         # If validator is equal to True
         self.validator = kwargs.get('validator', False)
-        # Validator key
-        # Mandatory for egress Node
-        self.validator_key = kwargs.get('validator_key', 0)
         # Prime number used for generating the SSS values
         self.prime_number = kwargs['prime_number']
-        # Value of the private polynomial
-        self.secret_share = kwargs['secret_share']
         # Public polynomial from the SSS
         self.public_polynomial = kwargs.get('public_polynomial', 0)
+        # Secret share from the SSS
+        self.secret_share = kwargs['secret_share']
         # LPC value from the SSS
         self.lpc = kwargs['lpc']
         # Maintain this constant for the moment
         self.bitmask = kwargs['bitmask']
         # Optional Values that may be set later.
+        self.validator_key = kwargs.get('validator_key', None)
+
         # Format the masks
         try:
             self.opot_masks = {

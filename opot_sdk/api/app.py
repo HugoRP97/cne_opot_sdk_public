@@ -5,7 +5,6 @@ import logging
 # For error validators
 from opot_sdk.opot_controller.OPoTController import OPoTController
 
-
 # Setup the config
 
 #  We must consider that here the values from the .ini file have .ini values are predominant over environment variables
@@ -15,7 +14,6 @@ class EnvInterpolation(BasicInterpolation):
     def before_get(self, parser, section, option, value, defaults):
         value = super().before_get(parser, section, option, value, defaults)
         return os.path.expandvars(value)
-
 
 def instantiate_api():
     # Setting up the configuration of the API
@@ -40,6 +38,5 @@ def instantiate_api():
     OPoTController().start()
     application = app.app
 
-
 if __name__ == '__main__':
-    instantiate_api()
+   instantiate_api()

@@ -24,11 +24,10 @@ def prepare_socket_for_connection(server_address, service=None, protocol='TCP'):
     return sock
 
 
-def send_raw_data_to_address(main_socket, data_to_send, server_address, protocol='TCP'):
+def send_raw_data_to_address(data_to_send, server_address, protocol='TCP'):
     """
     Method to send data as a byte array without any encoding
 
-    :param main_socket:
     :param data_to_send: information that is going to be sent
     :param server_address: address of the destination
     :param protocol: protocol to use TCP or UDP
@@ -36,15 +35,15 @@ def send_raw_data_to_address(main_socket, data_to_send, server_address, protocol
     """
     # It is important to remark that this function is just for sending a raw packet information.
     try:
-        # main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM)
+        main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM)
         if protocol == 'TCP':
             main_socket.connect(server_address)
             main_socket.sendall(data_to_send)
-            # main_socket.shutdown(socket.SHUT_RDWR)
-            # main_socket.close()
+            main_socket.shutdown(socket.SHUT_RDWR)
+            main_socket.close()
         else:
             main_socket.sendto(data_to_send, server_address)
-        # main_socket.close()
+        main_socket.close()
     except Exception as e:
         logging.exception(f'Error when sending data to {server_address}')
         raise

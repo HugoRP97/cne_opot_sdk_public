@@ -52,34 +52,24 @@ install_packages () {
       pip3 install --upgrade pip setuptools
   }
 
-install_pcre2() {
-  echo "[+] Install pcre2" &&
-  cd /opt/dev && \
-  git clone --single-branch --branch pcre2-10.40  https://github.com/PCRE2Project/pcre2/  &&\
-  cd pcre2 && \
-  ./autogen.sh &&\
-  ./configure; \
-}
-
 install_libyang() {
   echo "[+] Install libyang"
   cd /opt/dev && \
-  git clone --single-branch --branch v2.0.231 https://github.com/CESNET/libyang &> /dev/null
+  git clone --single-branch --branch libyang1 https://github.com/CESNET/libyang &> /dev/null
   cd libyang
   mkdir build
   cd build
-  cmake -DGEN_LANGUAGE_BINDINGS=ON   .. && \
+  cmake -DGEN_LANGUAGE_BINDINGS=ON - -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE="Release" -DWITH_ZLIB=ON -DWITH_NACL=OFF -DWITH_PCAP=OFF  .. && \
   make install
-
 }
 install_sysrepo() {
   echo "[+] Install sysrepo"
   cd /opt/dev && \
-  git clone --single-branch --branch v2.1.84 https://github.com/sysrepo/sysrepo &> /dev/null
+  git clone --single-branch --branch libyang1 https://github.com/sysrepo/sysrepo &> /dev/null
   cd sysrepo
   mkdir build
   cd build
-  cmake -DGEN_LANGUAGE_BINDINGS=ON   -DCMAKE_BUILD_TYPE="Release" -DWITH_ZLIB=ON -DWITH_NACL=OFF -DWITH_PCAP=OFF  -DREPOSITORY_LOC:PATH=/etc/sysrepo .. && \
+  cmake -DGEN_LANGUAGE_BINDINGS=ON   -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE="Release" -DWITH_ZLIB=ON -DWITH_NACL=OFF -DWITH_PCAP=OFF  -DREPOSITORY_LOC:PATH=/etc/sysrepo .. && \
   make install
 }
 install_node_packages() {
@@ -96,29 +86,29 @@ install_node_packages() {
   cd libssh && git checkout stable-0.9
   mkdir build
   cd build && \
-  cmake  -DCMAKE_INSTALL_PREFIX=/us -DCMAKE_BUILD_TYPE="Release" -DWITH_ZLIB=ON -DWITH_NACL=OFF -DWITH_PCAP=OFF .. && \
+  cmake  -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE="Release" -DWITH_ZLIB=ON -DWITH_NACL=OFF -DWITH_PCAP=OFF .. && \
   make -j2 && \
   make install
 
   # Download and install libnetconf2
   echo "[+] Installing libnetconf2"
   cd /opt/dev && \
-  git clone --single-branch --branch v2.1.18 https://github.com/CESNET/libnetconf2.git &> /dev/null
+  git clone --single-branch --branch libyang1 https://github.com/CESNET/libnetconf2.git &> /dev/null
   cd libnetconf2 && \
   mkdir build
   cd build && \
-  cmake  -DCMAKE_BUILD_TYPE:String="Release"  -DENABLE_BUILD_TESTS=OFF .. && \
+  cmake  -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF .. && \
   make -j2 && \
   make install
 
   # Download and install netopeer2
   echo "[+] Installing netopeer2"
   cd /opt/dev && \
-  git clone --single-branch --branch v2.1.36 https://github.com/CESNET/Netopeer2.git &> /dev/null
+  git clone --single-branch --branch libyang1 https://github.com/CESNET/Netopeer2.git &> /dev/null
   cd Netopeer2 && \
   mkdir build
   cd build && \
-  cmake  -DCMAKE_BUILD_TYPE:String="Release" .. && \
+  cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_BUILD_TYPE:String="Release" .. && \
   make -j2 && \
   make install
 }
@@ -217,7 +207,7 @@ else
     echo "[+] You have selected to install the controller."
     install_controller
   else
-    echo "[!] Bad input, you must select \n ./install.sh node \n ./install.sh controller"
+    echo "[!] Bad input"
   fi
 fi
 

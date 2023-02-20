@@ -3,6 +3,9 @@ FROM ubuntu AS opot_main_packages
 # For none interaction installation
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DOCKER=true
+# Copy the working files
+RUN mkdir /cne-opot_sdk
+ADD ./ /cne-opot_sdk
 # Call the selected install.sh
 #RUN cd /cne-opot_sdk/install; bash install.sh node
 RUN apt-get update && apt-get install -y \
@@ -95,13 +98,8 @@ RUN echo "[+] Installing netopeer2"; \
       make -j2 && \
       make install
 
-
-# Copy the working files
-RUN mkdir /cne-opot_sdk
-ADD ./ /cne-opot_sdk
-
 RUN   echo "[+] Install Yang Model"; \
-      sysrepoctl -i /cne-opot_sdk/install/yang/ietf-pot-profile.yang
+      sysrepoctl -i /cne-opot_sdk/install/yang/ietf-pot-profile.yang -v3
 
 RUN   echo "[+] Adding Netopeer Server Configuration files"
 COPY ./install/docker/node/configure_netconf_server.py /configure_netconf_server.py

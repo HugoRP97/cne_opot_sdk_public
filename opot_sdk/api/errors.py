@@ -7,7 +7,7 @@ DEBUG = os.environ.get("FLASK_DEBUG", None)
 
 def create_path_internal_error(e: Exception):
     """
-    Returns the InternalServerError exception if the path was not created because there was an error in the
+    Returns the InternalServerError exception if something an error occurred when destroying or instantiating a node
     OPoTController
 
     :param e: Exception that has been produced
@@ -15,7 +15,7 @@ def create_path_internal_error(e: Exception):
     :rtype: ConnexionResponse
     """
     logging.getLogger().exception("Error")
-    return problem(status=500, title="There was an error in the server when creating the path",
+    return problem(status=500, title="There was an error in the server.",
                    detail=str(e))
 
 

@@ -1,22 +1,18 @@
 import json
-import logging
-import random
-import threading
+import os
 import uuid
 from collections import OrderedDict
 import time
-from random import randint as randint
+import random
 from opot_sdk.helpers.default_params.ControllerParams import controller_params
+from opot_sdk.helpers.descriptors.PotProfileListDescriptor import PotProfileListDescriptor
 from opot_sdk.helpers.descriptors.OPotLogDescriptor import OPoTLog
 from opot_sdk.helpers.lagrange import generate_lagrange_parameters, calculate_new_cml
 from opot_sdk.helpers.enums import Command, NodeStatus, NodeType, PathStatus, FlowStatus
 from opot_sdk.helpers.logging.ControllerLogging import controller_logging
 from opot_sdk.opot_controller import MaskManager
 from opot_sdk.opot_controller.NodeInfo import NodeInfo
-from datetime import datetime
 
-
-# m = open('/tmp/mtd_general.csv', 'w')
 
 class OPoTPath:
     """
@@ -30,23 +26,17 @@ class OPoTPath:
 
         :param data:
         """
-
         # For logging module
         self.creation_time = int(time.time() * 1e6)
         self.path_id = str(uuid.uuid1())
+        self.service_path_identifier = random.randint(1, 16777216)
         self.number_of_nodes = len(data['nodes'])
         self.protocol = data['protocol']
         self.prime = None  # To remove the warning from intellij
         # Set the receiver address
-        self.receiver_address = (
-            data['receiver']['ip'],
-            data['receiver'].get('port',
-                                 randint(int(controller_params.min_node_port), int(controller_params.max_node_port))))
+        self.receiver_ip = data['receiver']['ip']
         # Set the sender (it can be useful for next prototypes) address
-        self.sender_address = (
-            data['sender']['ip'],
-            data['sender'].get('port',
-                               randint(int(controller_params.min_node_port), int(controller_params.max_node_port))))
+        self.sender_ip = data['sender']['ip']
         # Add the instance of the mask_manager and extract the masks
         self.mask_manager = MaskManager.get_mask_manager()
         self.masks = self.mask_manager.extract_opot_masks(self.number_of_nodes)
@@ -59,11 +49,6 @@ class OPoTPath:
         self.flow_status = {}
         self.status = PathStatus.PREPARING
         self.prometheus = data.get('prometheus', None)
-
-        self.locker_i = threading.Lock()
-        self.locker_v = threading.Lock()
-        self.m_i = open('/tmp/mtd_invalid.csv', 'w')
-        self.m_v = open('/tmp/mtd_valid.csv', 'w')
 
     def generate_node_descriptors(self, data_nodes):
         """
@@ -81,9 +66,6 @@ class OPoTPath:
         self.prime = lagrange_parameters['prime_number']
         for i in range(self.number_of_nodes):
             address = data_nodes[i]
-            if address.get('port', None) is None:
-                address['port'] = randint(int(controller_params.min_node_port),
-                                          int(controller_params.max_node_port))
             pot_profile_list = {
                 "bitmask": 64,
                 "secret_share": int(lagrange_parameters["y_points"][i]),
@@ -96,40 +78,45 @@ class OPoTPath:
                 pot_profile_list["status"] = True
                 nodes.append(NodeInfo(
                     node_mgmt_ip=address['mgmt_ip'],
-                    downstream_ip=address.get('path_ip', address['mgmt_ip']),
-                    downstream_port=self.sender_address[1],
-                    node_position=i + 1,
+                    downstream_ip=address['path_ip'],
                     pot_profile_name=self.path_id,
                     pot_profile_list=[pot_profile_list],
-                    protocol=self.protocol
+                    service_path_identifier=self.service_path_identifier,
+                    protocol=self.protocol,
+                    pot_path_length=self.number_of_nodes,
+                    node_position=i + 1
                 ))
             # EgressNode
             elif i == (self.number_of_nodes - 1):
+                if os.environ.get("FORCE_ERROR",None) is not None:
+                    pot_profile_list['lpc'] = pot_profile_list['lpc'] + 1
+                pot_profile_list["validator_key"] = lagrange_parameters['polynomial'][-1]
                 pot_profile_list["validator"] = True
                 pot_profile_list["opot_masks"] = {"downstream_mask": self.masks[i - 1]}
-                pot_profile_list["validator_key"] = lagrange_parameters["polynomial"][-1]
+
                 nodes.append(NodeInfo(
                     node_mgmt_ip=address['mgmt_ip'],
-                    downstream_ip=address.get('path_ip', address['mgmt_ip']),
-                    downstream_port=address['port'],
-                    node_position=i + 1,
-                    upstream_ip=self.receiver_address[0],
-                    upstream_port=self.receiver_address[1],
+                    downstream_ip=address['path_ip'],
+                    upstream_ip=self.receiver_ip,
                     pot_profile_name=self.path_id,
+                    service_path_identifier=self.service_path_identifier,
+                    pot_path_length=self.number_of_nodes,
                     pot_profile_list=[pot_profile_list],
                     protocol=self.protocol,
+                    node_position= i + 1
                 ))
             # Middle Node
             else:
                 pot_profile_list["opot_masks"] = {"upstream_mask": self.masks[i], "downstream_mask": self.masks[i - 1]}
                 nodes.append(NodeInfo(
                     node_mgmt_ip=address['mgmt_ip'],
-                    downstream_ip=address.get('path_ip', address['mgmt_ip']),
-                    downstream_port=address['port'],
-                    node_position=i + 1,
+                    downstream_ip=address['path_ip'],
+                    service_path_identifier=self.service_path_identifier,
+                    pot_path_length=self.number_of_nodes,
                     pot_profile_name=self.path_id,
                     pot_profile_list=[pot_profile_list],
-                    protocol=self.protocol
+                    protocol=self.protocol,
+                    node_position= i + 1
                 ))
 
         nodes_descriptors = OrderedDict()
@@ -190,40 +177,31 @@ class OPoTPath:
             self.flow_status[seq_number] = FlowInfo(self.number_of_nodes)
         flow_status = self.flow_status[seq_number]
         flow_status.update_status(log)
-        # controller_logging.root_logger.info("UPDATE FLOW STATUS")
         # Check the current state of the flow if there is an error run in other threat the calculation to prevent
         #  blocking the main thread
-        d = datetime.utcnow().timestamp()
         if flow_status.status == FlowStatus.SUCCESSFUL:
-            self.locker_v.acquire()
-            self.m_v.write(f'{d},{flow_status.duration}\n')
-            self.locker_v.release()
-
-            # controller_logging.root_logger.info("SUCCESS")
             if self.prometheus:
                 controller_params.valid_time_metric.set(flow_status.duration)
-            # controller_logging.root_logger.debug(
-            #     f'OPoT was successful in path "{self.path_id}" for the packet {seq_number}'
-            #     f' with a duration of {flow_status.duration} microseconds.')
+                controller_params.valid_validations_metric.inc(1)
+            controller_logging.valid_logger.debug(f'{time.time()},{seq_number},{True},{flow_status.duration}')
+            controller_logging.root_logger.debug(
+                f'OPoT was successful in path "{self.path_id}" for the packet {seq_number}'
+                f' with a duration of {flow_status.duration} microseconds.')
             self.send_to_kafka(flow_status, seq_number)
 
             # controllerLogging.flow_logger.debug(f'{self.path_id},{seq_number},{flow_status.duration}')
         elif flow_status.status == FlowStatus.FAIL:
-            self.locker_i.acquire()
-            self.m_i.write(f'{d},{flow_status.duration}\n')
-            self.locker_i.release()
-            # controller_logging.root_logger.info("FAIL")
             if self.prometheus:
                 controller_params.invalid_time_metric.set(flow_status.duration)
+                controller_params.invalid_validations_metric.inc(1)
             error_position = flow_status.locate_error(self.nodes)
+            controller_logging.valid_logger.debug(f'{time.time()},{seq_number},{False},{flow_status.duration}')
             # controller_logging.root_logger.error(
             #     f'OPoT was unsuccessful in path "{self.path_id}" for the packet {seq_number}'
             #     f' between the nodes {error_position - 1} and {error_position}.')
             self.send_to_kafka(flow_status, seq_number)
         controller_logging.flow_logger.debug(log)
-    def closeFiles(self):
-        self.m_i.close()
-        self.m_v.close()
+
     def send_to_kafka(self, flow_status, packet_number):
         """
         Method that produces the kafka information and is sent to the kafka producers.
@@ -236,8 +214,7 @@ class OPoTPath:
             node_list = list(self.nodes.keys())
             flow_status.timestamps.sort()
             timestamps = flow_status.timestamps
-            data = {"enabler_id": "pot_agent", "pot_id": self.path_id, "packet_number": packet_number,
-                    "nodes": node_list,
+            data = {"pot_id": self.path_id, "packet_number": packet_number, "nodes": node_list,
                     "timestamps": timestamps, "valid": flow_status.status == FlowStatus.SUCCESSFUL}
             message = json.dumps(data).encode('utf-8')
             controller_params.kafka_producer.send(controller_params.kafka_topic, message)
@@ -319,7 +296,7 @@ class FlowInfo:
         """
         # First we need to know if all the packets from the node have arrived, in the case where the number of nodes
         # is not equal that means that there are some packets that need to arrive
-        if self.number_of_nodes != (len(self.status_information)):
+        if self.number_of_nodes != len(self.status_information):
             node_id = log.node_id
             # Then we check that the information has not been already stored.
             if node_id not in self.status_information:
@@ -328,9 +305,8 @@ class FlowInfo:
                     self.secret = log.secret
                 if self.valid is None:
                     self.valid = log.valid
-                self.timestamps.append(int(time.time() * 1e6))
-        if self.number_of_nodes == (len(self.status_information)):
-            # If the last packet with the specific sequence number has been received
+                self.timestamps.append(log.timestamp)
+        if self.number_of_nodes == len(self.status_information):
             self.status = FlowStatus.SUCCESSFUL if self.valid else FlowStatus.FAIL
             self.duration = self.calculate_timestamp()
 
@@ -339,7 +315,9 @@ class FlowInfo:
         Method that returns the time that has passed since the IngressNode has received the first packet from the
         receiver until the Egress node has receiver the OPoT packet.
 
-        :return:
+        :return
+        :param log: The information that must contain the sequence number and the calculated CML by the node. Then
+:
         """
         first_node_timestamp = self.first_timestamp()
         last_node_timestamp = self.last_timestamp()
@@ -366,11 +344,13 @@ class FlowInfo:
         for node_id, node in nodes.items():
             new_cml = calculate_new_cml(prev_cml, public_secret=self.secret,
                                         prime_number=node.pot_profile_list.prime_number,
-                                        secret_share=node.pot_profile_list.public_polynomial,
+                                        public_pol=node.pot_profile_list.public_polynomial,
+                                        secret_share=node.pot_profile_list.secret_share,
                                         lpc=node.pot_profile_list.lpc)
-            if new_cml != self.status_information[node_id].cml:
+
+            if new_cml != self.status_information[str(node_id)].cml:
                 # This will indicate in which node we have found the error. This means that the connection between
                 # the node i and the the previous node (i-1) has been compromised
-                return node.node_position
+                return node.node_id
             else:
                 prev_cml = new_cml

@@ -1,9 +1,6 @@
 """
 Module to create singletons in case they are needed
 """
-import threading
-
-lock = threading.Lock()
 
 
 class Singleton(type):

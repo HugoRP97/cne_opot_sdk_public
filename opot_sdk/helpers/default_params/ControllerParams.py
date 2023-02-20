@@ -2,7 +2,7 @@ import logging
 import os
 from configparser import ConfigParser
 
-from prometheus_client import Gauge
+from prometheus_client import Gauge, Counter
 from kafka import KafkaProducer
 from opot_sdk.helpers.Singleton import Singleton
 from opot_sdk.helpers.default_params import EnvInterpolation
@@ -47,23 +47,30 @@ class ControllerParams(metaclass=Singleton):
         self.logs_path = controller.get("LOGS_PATH", "/tmp/")
 
         # Metrics for prometheus
-        self.valid_time_metric = Gauge("valid_verification", "Time spent to verify that the OPoT validation has "
-                                                             "been successful")
-        self.invalid_time_metric = Gauge("invalid_verification", "Time spent to verify that the OPoT validation has "
-                                                                 "been unsuccessful")
+        self.valid_time_metric = Gauge("valid_verification_time", "Time spent to verify that the OPoT validation has "
+                                                                  "been successful")
+        self.invalid_time_metric = Gauge("invalid_verification_time",
+                                         "Time spent to verify that the OPoT validation has "
+                                         "been unsuccessful")
         self.create_time_metric = Gauge("create_time", "Time spent by the controller and the nodes to instantiate an "
                                                        "OPoT Path")
+        self.valid_validations_metric = Counter("valid_verifications", "Number of times where a valid verification of "
+                                                                     "the PoT has occurred.")
+        self.invalid_validations_metric = Counter("invalid_verifications",
+                                                  "Number of times where an invalid verification of "
+                                                  "the PoT has occurred.")
         self.kafka_enable = False
+
         try:
             kafka_params = parser['KAFKA']
             self.kafka_enable = True
         except:
-            logging.getLogger('root_logger').warning("No KAFKA configuration has been found.")
+            logging.getLogger('root_logger').warn("No KAFKA configuration has been found.")
 
         if self.kafka_enable:
             try:
                 # Kafka producer:
-                self.kafka_servers = kafka_params['KAFKA_SERVERS'].split(",")
+                self.kafka_servers = kafka_params['KAFKA_SERVERS']
                 # Producer used by OPoTPath to send the JSON messages.
                 self.kafka_producer = KafkaProducer(bootstrap_servers=self.kafka_servers, linger_ms=5e3)
                 # Topic where the producer is going to be sending the messages.
@@ -71,9 +78,8 @@ class ControllerParams(metaclass=Singleton):
                 # If we are testing and we dont need kafka enabled.
                 self.kafka_enable = True
             except Exception as e:
-                # logging.getLogger('error_logger').exception(e)
-                # logging.getLogger('root_logger').warning("Kafka has been disable, missing argument KAFKA_SERVERS or "
-                #                                          "KAFKA_TOPIC")
+                logging.getLogger('error_logger').exception(e)
+                logging.getLogger('root_logger').warn("Kafka has been disable")
 
                 self.kafka_servers = os.environ.get('KAFKA_SERVERS', None)
                 self.kafka_topic = os.environ.get('KAFKA_TOPIC', None)
@@ -83,12 +89,12 @@ class ControllerParams(metaclass=Singleton):
                         self.kafka_producer = KafkaProducer(bootstrap_servers=self.kafka_servers, linger_ms=5e3)
                     except Exception as e:
                         self.kafka_enable = False
-                        # logging.getLogger('error_logger').exception(e)
-                        logging.getLogger('root_logger').warning("Kafka has been disable")
+                        logging.getLogger('error_logger').exception(e)
+                        logging.getLogger('root_logger').warn("Kafka has been disable")
                 else:
                     self.kafka_enable = False
-                    # logging.getLogger('error_logger').exception(e)
-                    logging.getLogger('root_logger').warning("Kafka has been disable")
+                    logging.getLogger('error_logger').exception(e)
+                    logging.getLogger('root_logger').warn("Kafka has been disable")
 
 
 controller_params = ControllerParams()

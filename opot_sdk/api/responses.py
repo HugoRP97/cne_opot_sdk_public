@@ -15,7 +15,7 @@ def create_path_response(path: OPoTPath):
     for node_id, node in path.nodes.items():
         nodes.append(
             {'status': node.status,
-             'address': {'mgmt_ip': node.node_mgmt_ip, 'path_ip': node.node_path_ip, 'port': node.node_listening_port},
+             'address': {'mgmt_ip': node.node_mgmt_ip, 'path_ip': node.node_path_ip},
              'node_id': node.node_id,
              'node_type': node.node_type,
              'node_position': node.node_position})

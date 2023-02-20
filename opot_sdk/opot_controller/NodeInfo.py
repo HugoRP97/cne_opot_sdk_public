@@ -9,7 +9,7 @@ class NodeInfo(NodeDescriptor):
     """
 
     __values_to_not_parse__ = ('node_id', 'path_id', 'node_address', 'upstream_address', 'downstream_address',
-                               'upstream_id', 'downstream_id', 'status', 'node_type', 'node_position', 'node_mgmt_ip',
+                               'upstream_id', 'downstream_id', 'status', 'node_type', 'node_mgmt_ip',
                                "node_path_ip", "node_listening_port")
 
     def __init__(self, **kwargs):
@@ -25,8 +25,6 @@ class NodeInfo(NodeDescriptor):
         self.node_mgmt_ip = kwargs.get('node_mgmt_ip')
         # Just to make this a bit clear when asking for some values.
         self.node_path_ip = self.downstream_ip
-        self.node_listening_port = self.downstream_port
-        self.node_position = kwargs['node_position']
 
         # Depending on the type of node
         self.node_type = self.get_node_type()
@@ -44,7 +42,7 @@ class NodeInfo(NodeDescriptor):
         data = self.get_info_as_next_prev()
         data['lagrange_data'] = {
             "prime_number": self.pot_profile_list.prime_number,
-            "public_pol": self.pot_profile_list.public_polynomial,
+            "public_pol": self.pot_profile_list.secret_share,
             "lpc": self.pot_profile_list.lpc
         }
         data['masks'] = {
@@ -65,10 +63,6 @@ class NodeInfo(NodeDescriptor):
 
     def set_upstream_node(self, node):
         self.upstream_ip = node.downstream_ip
-        self.upstream_port = node.downstream_port
 
-    def set_downstream_node(self,node):
+    def set_downstream_node(self, node):
         self.downstream_ip = node.upstream_ip
-        self.downstream_port = node.upstream_port
-
-

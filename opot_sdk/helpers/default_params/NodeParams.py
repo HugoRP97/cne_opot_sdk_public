@@ -18,23 +18,22 @@ class NodeParams(metaclass=Singleton):
         node = parser['NODE']
         # Define the controller IP.
         self.controller_ip = node['OPOT_CONTROLLER_IP']
-        r_error = node.get('CHANCE_RANDOM_ERROR', '0')
-        if r_error is None or len(r_error) == 0:
-            r_error = 0.0
-        self.chance_random_error = float(r_error)
-        s_gen_time = node.get('GEN_TIME', '1')
-        if s_gen_time is None or len(s_gen_time) == 0:
-            s_gen_time = 1
-        self.sample_gen_time = float(1)
         # Define the controller Port.
-        port = node.get('GRPC_CONTROLLER_PORT', '9111')
-        if port is None or len(port) ==0:
-            port = 9111
-        self.grpc_port = int(port)
+        self.grpc_port = int(node.get('GRPC_CONTROLLER_PORT', 9111))
         # Setup the address of the controller.
         self.grpc_ip = self.controller_ip
         # Logs path
         self.logs_path = node.get("LOGS_PATH", "/var/log/opot/")
+        self.nsh_port = node.get("NSH_PORT",6633)
+
+        # Interfaces to listen
+        interfaces = node.get("INTERFACES_TO_LISTEN",None)
+        parsed_interfaces = interfaces
+        if interfaces is not None:
+            if type(interfaces) is str:
+                parsed_interfaces = interfaces.split(",")
+        self.interfaces_to_listen = parsed_interfaces
+
 
 
 node_params = NodeParams()

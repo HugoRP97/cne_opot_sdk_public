@@ -45,7 +45,7 @@ class OPoTController(threading.Thread, metaclass=Singleton):
 
     def run(self):
         # First we check if the thread was stopped, so we can instantiate another socket
-        start_http_server(controller_params.prometheus_port, addr="0.0.0.0")
+        start_http_server(controller_params.prometheus_port, addr=controller_params.prometheus_ip)
         # Start logging server
         self.serve_log_server()
         controller_logging.root_logger.info("Starting OPoTController")
@@ -65,6 +65,27 @@ class OPoTController(threading.Thread, metaclass=Singleton):
         # Close the grpc server
         self.log_server.stop(0)
 
+    def handle_packet(self, packet):
+        """
+        Method that handles the incoming packets to the OPoTController.
+
+        :param packet: Packet with the command and the information that will be managed by the method
+        :return:
+        """
+        # If we receive an update from the opot_nodes
+        try:
+            if packet['command'] == Command.UPDATE_FLOW_STATUS:
+                controller_logging.root_logger.debug(
+                    "Information about a flow update has been received from node {}".format(packet['info']['node_id']))
+                self.paths[packet['info']['opot_id']].update_flow_status(packet['info'])
+                self.paths[packet['info']['opot_id']].update_node_status(packet['info'])
+            if packet['command'] == Command.UPDATE_NODE_STATUS:
+                controller_logging.root_logger.debug(
+                    f'Information about a node update has been received from {packet["info"]["node_id"]}')
+                self.paths[packet['info']['opot_id']].update_node_status(packet['info'])
+        except Exception:
+            controller_logging.root_logger.exception("An error has occurred")
+
     def create_path(self, data):
         """
         This method will deploy the paths passed for the moment via a file.
@@ -76,9 +97,9 @@ class OPoTController(threading.Thread, metaclass=Singleton):
         path = OPoTPath(data)
         test = data.get('prometheus', False)
         self.paths[path.path_id] = path
-        node_id = ""
         try:
             for node_id, node in path.nodes.items():
+
                 # Create the connexion to the ncclient
                 with manager.connect(host=node.node_mgmt_ip,
                                      port=controller_params.netconf_ssh_port,
@@ -127,7 +148,6 @@ class OPoTController(threading.Thread, metaclass=Singleton):
                     # TODO ADD any kind of validation to check if the node is still working
                     controller_logging.root_logger.exception(f'Error occurred when removing the node {node_id}')
                     raise e
-        self.paths.get(path_id).closeFiles()
         self.paths.pop(path_id)
         controller_logging.root_logger.info(f'Path {path_id} has been removed.')
         return True

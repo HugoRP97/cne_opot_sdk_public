@@ -1,19 +1,14 @@
 openapi: 3.0.0
 info:
   title: OPoT Open API
-  version: 1.0.0
-  description: API designed to manage the events of creating and deleting the different OPoT paths. This will give the ability to guarantee that a given network packet has passed through certain nodes and in a given order.
-  contact:
-    name: Hugo
-    email: hugo.ramonpascual.practicas@telefonica.com
-  license:
-    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-    name: Apache 2.0
+  version: 0.0.1
+  description: API for managing OPoT Paths.
+  contact: {}
 servers:
-  - url: /opot_api/
-    description: Path for the OPoT API
+  - url: /api/v2/
+    description: Base path of the API
 paths:
-  '/path/{uuid}':
+  '/pot/controller/path/{uuid}':
     parameters:
       - schema:
           type: string
@@ -23,7 +18,7 @@ paths:
         required: true
         description: uuid of the existing path
     get:
-      summary: Get information about an existing OPoT Path
+      summary: Get information about a existing OPoT Path
       responses:
         '200':
           $ref: '#/components/responses/path_information'
@@ -32,21 +27,21 @@ paths:
         '500':
           $ref: '#/components/responses/error'
       operationId: opot_sdk.api.get_path_info
-      description: Retrieve the status and information of an existing path
+      description: Retrieve the status and information of a existing path
       tags:
         - opot
     delete:
-      summary: Destroy an OPoT Path
+      summary: Destroy OPoT Path
       operationId: opot_sdk.api.destroy_path
       responses:
         '200':
           $ref: '#/components/responses/default'
         '404':
           $ref: '#/components/responses/error'
-      description: Destroying an OPoT Path
+      description: Destroying a OPoT Path
       tags:
         - opot
-  /path:
+  /pot/controller/path:
     post:
       summary: Create OPoT Path
       operationId: opot_sdk.api.create_path
@@ -61,40 +56,43 @@ paths:
             schema:
               $ref: '#/components/schemas/PathDescriptor'
             examples:
-              Example with prometheus enabled:
+              example_ports:
                 value:
-                  protocol: UDP
+                  nodes:
+                    - mgmt_ip: 192.168.0.1
+                      path_ip: 10.0.0.1
+                    - mgmt_ip: 192.168.0.2
+                      path_ip: 10.0.0.2
+                  receiver:
+                    ip: 192.168.0.3
+                  sender:
+                    ip: 192.168.0.4
+              example_no_ports:
+                value:
+                  nodes:
+                    - mgmt_ip: 192.168.0.1
+                      path_ip: 10.0.0.1
+                    - mgmt_ip: 192.168.0.2
+                      path_ip: 10.0.0.2
+                  receiver:
+                    ip: 192.168.0.3
+                  sender:
+                    ip: 192.168.0.4
+              example_local_prometheus:
+                value:
                   prometheus: true
                   nodes:
-                    - mgmt_ip: 192.168.0.1
-                      path_ip: 10.0.0.1
-                    - mgmt_ip: 192.168.0.2
-                      path_ip: 10.0.0.2
+                    - mgmt_ip: 127.0.0.1
+                      path_ip: 127.0.0.1
+                    - mgmt_ip: 127.0.0.1
+                      path_ip: 127.0.0.1
                   receiver:
-                    ip: 192.168.0.3
-                    port: 55444
+                    ip: 127.0.0.1
                   sender:
-                    ip: 192.168.0.4
-                    port: 55432
-              Example with prometheus disabled:
-                value:
-                  protocol: UDP
-                  nodes:
-                    - mgmt_ip: 192.168.0.1
-                      path_ip: 10.0.0.1
-                    - mgmt_ip: 192.168.0.2
-                      path_ip: 10.0.0.2
-                  receiver:
-                    ip: 192.168.0.3
-                    port: 55444
-                  sender:
-                    ip: 192.168.0.4
-                    port: 55432
-        description: ''
-      description: Create an OPoT Path
+                    ip: 127.0.0.1
+      description: Create a OPoT Path
       tags:
         - opot
-    parameters: []
 components:
   schemas:
     PathInfo:
@@ -123,7 +121,6 @@ components:
                 node_type: Egress
             masks:
               - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
-            protocol: UDP
             creation_time: 1615305214342100
         PathInfo1:
           value:
@@ -154,7 +151,6 @@ components:
                 node_type: Egress
             masks:
               - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
-            protocol: UDP
             creation_time: 1615305214342100
       description: Information about a deployed path
       properties:
@@ -203,10 +199,6 @@ components:
             minLength: 44
             maxLength: 44
             example: 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
-        protocol:
-          type: string
-          pattern: UDP|TCP
-          example: UDP
         creation_time:
           type: integer
           format: time
@@ -215,7 +207,6 @@ components:
         - 'pot_id '
         - nodes
         - masks
-        - protocol
         - creation_time
     PathDescriptor:
       title: PathDescriptor
@@ -223,11 +214,6 @@ components:
       description: 'Descriptor of the path that will be created '
       x-examples: {}
       properties:
-        protocol:
-          type: string
-          pattern: UDP|TCP
-          example: UDP
-          description: Protocol that is going to be used for the path. UDP or TCP
         nodes:
           type: array
           minItems: 2
@@ -241,7 +227,6 @@ components:
         prometheus:
           type: boolean
       required:
-        - protocol
         - nodes
         - receiver
         - sender
@@ -262,11 +247,6 @@ components:
         path_ip:
           type: string
           format: ipv4
-        port:
-          type: integer
-          maximum: 65353
-          minimum: 0
-          example: 55432
       required:
         - mgmt_ip
         - path_ip
@@ -289,6 +269,8 @@ components:
           maximum: 65353
           minimum: 0
           example: 55432
+      required:
+        - ip
   securitySchemes: {}
   responses:
     path_information:
@@ -312,20 +294,17 @@ components:
                     node_position: 0
                     address:
                       ip: 192.168.0.1
-                      port: 55432
                     node_type: Ingress
                   - status: Operative
                     node_id: Egress_node_id
                     node_position: 1
                     address:
                       ip: 192.168.0.2
-                      port: 55433
                     node_type: Egress
                 masks:
                   - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
-                protocol: UDP
                 creation_time: 1615305214342100
-            Path2:
+            example-2:
               value:
                 'pot_id ': 1266841a-0650-4496-a5ad-e84a5ae762f3
                 status: 200
@@ -336,25 +315,21 @@ components:
                     node_position: 0
                     address:
                       ip: 192.168.0.1
-                      port: 55432
                     node_type: Ingress
                   - status: Operative
                     node_id: Middle_node_id
                     node_position: 1
                     address:
                       ip: 192.168.0.2
-                      port: 55433
                     node_type: Middle
                   - status: Operative
                     node_id: Egress_node_id
                     node_position: 2
                     address:
                       ip: 192.168.0.3
-                      port: 55434
                     node_type: Egress
                 masks:
                   - 2xaH0dBnJBRGQDXl8bhRXLqm81cVV7ddNJDrp77uvbs=
-                protocol: UDP
                 creation_time: 1615305214342100
     error:
       description: Example response
@@ -381,17 +356,11 @@ components:
               - title
               - type
           examples:
-            Not Found:
+            example-1:
               value:
-                detail: The uuid of the OPoT was not found
-                status: 404
-                title: Not Found
-                type: string
-            Internal Server Error:
-              value:
-                detail: There was an error in the controller
+                detail: Details of the error
                 status: 500
-                title: Internal Server Error
+                title: Title of the error
                 type: string
     default:
       description: Default response
@@ -412,3 +381,4 @@ components:
   examples: {}
 tags:
   - name: opot
+  - name: qrypt

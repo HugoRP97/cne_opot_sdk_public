@@ -1,10 +1,8 @@
-# Setup for node
-FROM ubuntu AS opot_main_packages
+FROM python AS opot_nsh_test
 # For none interaction installation
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DOCKER=true
 # Call the selected install.sh
-#RUN cd /cne-opot_sdk/install; bash install.sh node
 RUN apt-get update && apt-get install -y \
           sudo \
           htop \
@@ -70,43 +68,13 @@ RUN   echo "[+] Install sysrepo"; \
       cd sysrepo && mkdir build && cd build; \
       cmake -DGEN_LANGUAGE_BINDINGS=ON  -DENABLE_TESTS=OFF -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DREPOSITORY_LOC:PATH=/etc/sysrepo .. && \
       make install
-RUN   echo "[+] Installing libssh"; \
-      cd /opt/dev && \
-      git clone  https://git.libssh.org/projects/libssh.git; \
-      cd libssh && git checkout stable-0.9 && \
-      mkdir build && cd build;\
-      cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE="Release" -DWITH_ZLIB=ON -DWITH_NACL=OFF -DWITH_PCAP=OFF .. && \
-      make -j2 && \
-      make install
-RUN echo "[+] Installing libnetconf2"; \
-      cd /opt/dev && \
-      git clone --single-branch --branch libyang1 https://github.com/CESNET/libnetconf2.git; \
-      cd libnetconf2 && \
-      mkdir build && cd build && \
-      cmake  -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF .. && \
-      make -j2 && \
-      make install
-RUN echo "[+] Installing netopeer2"; \
-      cd /opt/dev && \
-      git clone --single-branch --branch libyang1 https://github.com/CESNET/Netopeer2.git; \
-      cd Netopeer2 && \
-      mkdir build && cd build && \
-      cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_BUILD_TYPE:String="Release" .. && \
-      make -j2 && \
-      make install
 
-#RUN   echo "[+] Install Yang Model"; \
-#      sysrepoctl -i /cne-opot_sdk/install/yang/ietf-pot-profile.yang
+COPY ./requirements.txt /requirements.txt
+RUN pip3 install -r requirements.txt
+FROM opot_nsh_test
+# Setting up tags for the configuration.
+RUN   echo "[CONTROLLER]"  > /etc/default/controller_config.ini
+RUN   echo "[OPENAPI]"  >> /etc/default/controller_config.ini
 
-WORKDIR /cne-opot_sdk
-
-RUN   #echo "[+] Installing opot_sdk module" && cd /cne-opot_sdk/ && /usr/bin/python3 setup.py install
-RUN   echo "[+] Creating logs directory" && mkdir /var/log/opot/
-
-WORKDIR /
-ENV NETCONF_PORT=830
-ENV NETCONF_IP="0.0.0.0"
-
-
-
-
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x entrypoint.sh

@@ -1,5 +1,6 @@
 import logging
 import queue
+from datetime import datetime
 from logging.handlers import QueueHandler, QueueListener
 from opot_sdk.helpers.Singleton import Singleton
 from opot_sdk.helpers.default_params.ControllerParams import controller_params
@@ -25,11 +26,16 @@ class ControllerLogging(metaclass=Singleton):
         self.error_logger.propagate = False
         self.flow_logger = logging.getLogger('flow_logger')
         self.flow_logger.propagate = False
-        self.add_queue_listener(self.error_logger, logging.ERROR, handlers=self.default_handlers(f'{controller_params.logs_path}/error.log'))
-        self.add_queue_listener(self.root_logger, logging.INFO, handlers=self.default_handlers(f'{controller_params.logs_path}/info.log'))
-
+        self.valid_logger = logging.getLogger('valid_logger')
+        self.add_queue_listener(self.error_logger, logging.ERROR,
+                                handlers=self.default_handlers(f'{controller_params.logs_path}/error.log'))
+        self.add_queue_listener(self.root_logger, logging.INFO,
+                                handlers=self.default_handlers(f'{controller_params.logs_path}/info.log'))
         flow_handler = FlowLogHandler(f'{controller_params.logs_path}/flow.log')
         self.add_queue_listener(self.flow_logger, logging.DEBUG, handlers=[flow_handler])
+
+        self.add_queue_listener(self.valid_logger, logging.DEBUG,
+                                [logging.FileHandler(f'{controller_params.logs_path}/valid_{datetime.now}.log', mode='a')])
 
         for listener in self.listeners:
             listener.start()

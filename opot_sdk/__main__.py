@@ -16,7 +16,10 @@ def launch_opot_controller(topology = None):
 
 def launch_node_controller():
     print("Launching the OPoT Node")
+    if os.environ.get("INSTALL_YANG", None) is not None:
+        os.system("bash /config/entrypoint.sh")
     from opot_sdk.node_controller.NodeController import NodeController
+
     NodeController()
 
 def launch_api():
